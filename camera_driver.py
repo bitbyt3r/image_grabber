@@ -65,25 +65,22 @@ serial_number = camera.get_config(context).get_child_by_name('serialnumber').get
 if not os.path.isdir(os.path.join(config.folder, serial_number)):
     os.makedirs(os.path.join(config.folder, serial_number))
 
-last_heartbeat = time.time()
-next_heartbeat = 0
 def heartbeat():
-    global last_heartbeat
-    global next_heartbeat
+    now = time.time()
     request = requests.post(config.server + "/camera/heartbeat", json={"serial": serial_number})
     data = request.json()
-    last_heartbeat = time.time()
-    next_heartbeat = last_heartbeat + data['heartbeat_interval']
-    if 'configuration' in data.keys():
+    if 'configuration' in data:
         set_settings(data['configuration'])
         requests.post(config.server + "/camera/configuration_complete", json={"serial": serial_number})
-    if 'update_options' in data.keys():
+    if 'update_options' in data:
         requests.post(config.server + "/camera/options", json={"serial": serial_number, "options": get_settings()})
+    return now + data['heartbeat_interval']
 
+next_heartbeat = 0
 while True:
     event, data = camera.wait_for_event(min(1000, int(next_heartbeat - time.time())), context)
     if type(data) is gp.camera.CameraFilePath:
         image_file = camera.file_get(data.folder, data.name, gp.GP_FILE_TYPE_NORMAL, context)
         gp.gp_file_save(image_file, os.path.join(config.folder, serial_number, data.name))
     if time.time() > next_heartbeat:
-        heartbeat()
+        next_heartbeat = heartbeat()
