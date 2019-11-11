@@ -1,5 +1,6 @@
 #!/usr/bin/python
 from flask import send_from_directory, request, jsonify, Flask
+from types import SimpleNamespace
 import requests
 import argparse
 import shutil
@@ -10,37 +11,30 @@ import os
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("-c", "--config", help="Path to config file", default="/etc/imagegrabber.conf")
     parser.add_argument("-s", "--server", help="Path to reconstruction server's REST endpoint")
-    parser.add_argument("-f", "--image-folder", help="Path to the image storage")
-    parser.add_argument("-F", "--scan-folder", help="Path to the root folder for scan storage")
-    parser.add_argument("-r", "--redis-host", help="Redis host", default="localhost")
-    parser.add_argument("-p", "--redis-port", help="Redis port", default=6379, type=int)
-    parser.add_argument("-d", "--redis-db", help="Redis db", default=0, type=int)
+    parser.add_argument("-f", "--image_folder", help="Path to the image storage")
+    parser.add_argument("-F", "--scan_folder", help="Path to the root folder for scan storage")
+    parser.add_argument("-r", "--redis_host", help="Redis host", default="localhost")
+    parser.add_argument("-p", "--redis_port", help="Redis port", default=6379, type=int)
+    parser.add_argument("-d", "--redis_db", help="Redis db", default=0, type=int)
     parser.add_argument("-H", "--heartbeat", help="Sets the heartbeat interval for clients", default=1, type=float)
-    args = parser.parse_args()
-
-    config = {}
-    if os.path.isfile(args.config):
-        with open(args.config, "r") as CONFIG_FILE:
-            config = json.loads(CONFIG_FILE.read())
-
-    for i in vars(args).keys():
-        if getattr(args, i):
-            config[i] = getattr(args, i)
+    parser.add_argument("-l", "--host", help="Hostname to listen on", default="localhost")
+    parser.add_argument("-P", "--port", help="Port to listen on", default=5000, type=int)
+    config = parser.parse_args()
 else:
-    config = {
-        'config': "",
-        'server': "localhost:8080",
-        'image-folder': "./images",
-        'scan-folder': "./scans",
-        'redis-host': "localhost",
-        'redis-port': 6379,
-        'redis-db': 0,
-        'heartbeat': 0.5
-    }
+    config = SimpleNamespace(
+        server="http://localhost:5000",
+        image_folder="/srv/ceph/images",
+        scan_folder="/srv/ceph/scans",
+        redis_host="localhost",
+        redis_port=6379,
+        redis_db=0,
+        heartbeat=1,
+        host="localhost",
+        port=5000
+    )
 
-r = redis.Redis(host=config['redis-host'], port=config['redis-port'], db=config['redis-db'])
+r = redis.Redis(host=config.redis_host, port=config.redis_port, db=config.redis_db)
 
 app = Flask(__name__)
 
@@ -60,7 +54,7 @@ def camera_heartbeat():
         now = time.time()
         cameras = []
         for camera in heartbeats:
-            if heartbeats[camera] > (now - config['heartbeat'] * 1.5):
+            if heartbeats[camera] > (now - config.heartbeat * 1.5):
                 cameras.append(camera)
         return jsonify(cameras=cameras)
     if request.method == "POST":
@@ -71,13 +65,13 @@ def camera_heartbeat():
             if r.exists('options_received'):
                 camera_options = json.loads(r.get('options_received'))
             if not id in camera_options:
-                return jsonify(heartbeat_interval=config['heartbeat'], update_options=True)
+                return jsonify(heartbeat_interval=config.heartbeat, update_options=True)
         if r.exists('configuration'):
             configuration = json.loads(r.get('configuration'))
             configured = json.loads(r.get('configured'))
             if id in configuration and not configured[id]:
-                return jsonify(heartbeat_interval=config['heartbeat'], configuration=configuration[id])
-        return jsonify(heartbeat_interval=config['heartbeat'])
+                return jsonify(heartbeat_interval=config.heartbeat, configuration=configuration[id])
+        return jsonify(heartbeat_interval=config.heartbeat)
 
 def update_configured(id):
     configured = {}
@@ -130,8 +124,8 @@ def update_capture_configure(capture_config, same=True):
             heartbeats = json.loads(r.get('heartbeats'))
         now = time.time()
         for entity in heartbeats:
-            if heartbeats[entity] > (now - config['heartbeat'] * 1.5):
-                configuration[entity] = capture_onfig
+            if heartbeats[entity] > (now - config.heartbeat * 1.5):
+                configuration[entity] = capture_config
                 configured[entity] = False
     else:
         for entity in capture_config:
@@ -171,33 +165,33 @@ def get_options():
 
 @app.route("/image/<path:path>")
 def get_image(path):
-    return send_from_directory(config['image-folder'], path)
+    return send_from_directory(config.image_folder, path)
 
 @app.route("/images")
 def get_images():
-    cameras = os.listdir(config['image-folder'])
+    cameras = os.listdir(config.image_folder)
     images = {}
     for camera in cameras:
-        images[camera] = os.listdir(os.path.join(config['image-folder'], camera))
+        images[camera] = os.listdir(os.path.join(config.image_folder, camera))
     return jsonify(images)
 
 @app.route("/delete", methods=["POST"])
 def delete_images():
     for camera in request.json:
         for image in request.json[camera]:
-            image_path = os.path.join(config['image-folder'], camera, image)
+            image_path = os.path.join(config.image_folder, camera, image)
             if os.path.isfile(image_path):
                 os.remove(image_path)
     return jsonify(success=True)
 
 @app.route("/group", methods=["POST"])
 def group_images():
-    scan_dir = os.path.join(config['scan-folder'], request.json['name'])
+    scan_dir = os.path.join(config.scan_folder, request.json['name'])
     if not os.path.isdir(scan_dir):
         os.makedirs(scan_dir)
     to_move = []
     for camera in request.json['cameras']:
-        image_path = os.path.join(config['image-folder'], camera, request.json['cameras'][camera])
+        image_path = os.path.join(config.image_folder, camera, request.json['cameras'][camera])
         dest_path = os.path.join(scan_dir, camera + "." + image_path.split(".")[-1])
         if os.path.isfile(image_path):
             to_move.append((image_path, dest_path))
@@ -206,3 +200,6 @@ def group_images():
     for move in to_move:
         shutil.move(*move)
     return jsonify(success=True)
+
+if __name__ == "__main__":
+    app.run(host=config.host, port=config.port)
