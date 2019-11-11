@@ -29,7 +29,6 @@ def udp_server():
         netid = data[-1]
         if msg == "macAddressAnnounce":
             if not netid in controllers:
-                print("Discovered controller {}".format(netid))
                 controllers[netid] = {"ip": addr[0], "status": "unknown"}
         elif msg == "captureComplete":
             if netid in controllers:
@@ -41,15 +40,16 @@ def udp_server():
                 if controllers[netid]['status'] != "ready":
                     break
             else:
-                requests.post(config.server + "/controller/configuration_complete")
+                requests.post(config.server + "/configuration_complete", json={"serial": config.serial})
 
 sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
 sock.setsockopt(socket.SOL_SOCKET, 25, str(config.device + '\0').encode('utf-8'))
 
 def udp_discover():
+    print("Starting discovery...")
     while True:
-        sock.sendto("discover".encode('ASCII'), ('<broadcast>', config.port))
+        sock.sendto("discovering".encode('ASCII'), ('<broadcast>', config.port))
         time.sleep(10)
 
 server = threading.Thread(target=udp_server)
