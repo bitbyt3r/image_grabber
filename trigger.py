@@ -60,7 +60,7 @@ discover.start()
 
 def heartbeat():
     now = time.time()
-    request = requests.post(config.server + "/controller/heartbeat", json={"controllers": controllers, "serial": config.serial, "type": "controller"})
+    request = requests.post(config.server + "/heartbeat", json={"controllers": controllers, "serial": config.serial, "type": "controller"})
     data = request.json()
     if 'configuration' in data:
         configuration = {
