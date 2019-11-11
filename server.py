@@ -51,21 +51,32 @@ def update_heartbeat(id):
     heartbeats[id] = time.time()
     r.set('heartbeats', json.dumps(heartbeats))
 
-@app.route("/camera/heartbeat", methods=["POST"])
+@app.route("/camera/heartbeat", methods=["POST", "GET"])
 def heartbeat():
-    id = request.json['serial']
-    r.transaction(lambda x : update_heartbeat(id), 'heartbeats')
-    camera_options = {}
-    if r.exists('options_received'):
-        camera_options = json.loads(r.get('options_received'))
-    if not id in camera_options:
-        return jsonify(heartbeat_interval=config['heartbeat'], update_options=True)
-    if r.exists('configuration'):
-        configuration = json.loads(r.get('configuration'))
-        configured = json.loads(r.get('configured'))
-        if id in configuration and not configured[id]:
-            return jsonify(heartbeat_interval=config['heartbeat'], configuration=configuration[id])
-    return jsonify(heartbeat_interval=config['heartbeat'])
+    if request.method == "GET":
+        heartbeats = {}
+        if r.exists('heartbeats'):
+            heartbeats = json.loads(r.get('heartbeats'))
+        now = time.time()
+        cameras = []
+        for camera in heartbeats:
+            if heartbeats[camera] > (now - config['heartbeat'] * 1.5):
+                cameras.append(camera)
+        return jsonify(cameras=cameras)
+    elif request.method == "POST":
+        id = request.json['serial']
+        r.transaction(lambda x : update_heartbeat(id), 'heartbeats')
+        camera_options = {}
+        if r.exists('options_received'):
+            camera_options = json.loads(r.get('options_received'))
+        if not id in camera_options:
+            return jsonify(heartbeat_interval=config['heartbeat'], update_options=True)
+        if r.exists('configuration'):
+            configuration = json.loads(r.get('configuration'))
+            configured = json.loads(r.get('configured'))
+            if id in configuration and not configured[id]:
+                return jsonify(heartbeat_interval=config['heartbeat'], configuration=configuration[id])
+        return jsonify(heartbeat_interval=config['heartbeat'])
 
 def update_configured(id):
     configured = {}
