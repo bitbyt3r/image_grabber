@@ -51,8 +51,8 @@ def update_heartbeat(id):
     heartbeats[id] = time.time()
     r.set('heartbeats', json.dumps(heartbeats))
 
-@app.route("/camera/heartbeat", methods=["POST", "GET"])
-def heartbeat():
+@app.route("/heartbeat", methods=["POST", "GET"])
+def camera_heartbeat():
     if request.method == "GET":
         heartbeats = {}
         if r.exists('heartbeats'):
@@ -63,14 +63,15 @@ def heartbeat():
             if heartbeats[camera] > (now - config['heartbeat'] * 1.5):
                 cameras.append(camera)
         return jsonify(cameras=cameras)
-    elif request.method == "POST":
+    if request.method == "POST":
         id = request.json['serial']
         r.transaction(lambda x : update_heartbeat(id), 'heartbeats')
-        camera_options = {}
-        if r.exists('options_received'):
-            camera_options = json.loads(r.get('options_received'))
-        if not id in camera_options:
-            return jsonify(heartbeat_interval=config['heartbeat'], update_options=True)
+        if request.json['type'] == "camera":
+            camera_options = {}
+            if r.exists('options_received'):
+                camera_options = json.loads(r.get('options_received'))
+            if not id in camera_options:
+                return jsonify(heartbeat_interval=config['heartbeat'], update_options=True)
         if r.exists('configuration'):
             configuration = json.loads(r.get('configuration'))
             configured = json.loads(r.get('configured'))
@@ -85,7 +86,7 @@ def update_configured(id):
     configured[id] = True
     r.set('configured', json.dumps(configured))
 
-@app.route("/camera/configuration_complete", methods=["POST"])
+@app.route("/configuration_complete", methods=["POST"])
 def configuration_complete():
     id = request.json['serial']
     r.transaction(lambda x : update_configured(id), 'configured')
@@ -120,19 +121,25 @@ def camera_options():
     r.transaction(lambda x : update_options(serial, options), 'options')
     return jsonify(success=True)
 
-def update_capture_configure(camera_config):
-    heartbeats = {}
-    if r.exists('heartbeats'):
-        heartbeats = json.loads(r.get('heartbeats'))
-    now = time.time()
+def update_capture_configure(capture_config, same=True):
     configuration = {}
     configured = {}
-    for camera in heartbeats:
-        if heartbeats[camera] > (now - config['heartbeat'] * 1.5):
-            configuration[camera] = camera_config
-            configured[camera] = False
+    if same:
+        heartbeats = {}
+        if r.exists('heartbeats'):
+            heartbeats = json.loads(r.get('heartbeats'))
+        now = time.time()
+        for entity in heartbeats:
+            if heartbeats[entity] > (now - config['heartbeat'] * 1.5):
+                configuration[entity] = capture_onfig
+                configured[entity] = False
+    else:
+        for entity in capture_config:
+            configuration[entity] = capture_config[entity]
+            configured[entity] = False
     r.set('configuration', json.dumps(configuration))
     r.set('configured', json.dumps(configured))
+
 
 @app.route("/capture/configure", methods=["POST", "GET"])
 def capture_configure():
@@ -140,9 +147,21 @@ def capture_configure():
         if r.exists('configuration'):
             return jsonify(configuration=json.loads(r.get('configuration')), configured=json.loads(r.get('configured')))
         return jsonify(success=False)
-    configuration = request.json
-    r.transaction(lambda x : update_capture_configure(configuration), 'configuration')
-    return jsonify(success=True)
+    if request.method == "POST":
+        configuration = request.json
+        r.transaction(lambda x : update_capture_configure(configuration, True), 'configuration')
+        return jsonify(success=True)
+
+@app.route("/capture/configure_all", methods=["POST", "GET"])
+def capture_configure_all():
+    if request.method == "GET":
+        if r.exists('configuration'):
+            return jsonify(configuration=json.loads(r.get('configuration')), configured=json.loads(r.get('configured')))
+        return jsonify(success=False)
+    if request.method == "POST":
+        configuration = request.json
+        r.transaction(lambda x : update_capture_configure(configuration, False), 'configuration')
+        return jsonify(success=True)
 
 @app.route("/options")
 def get_options():

@@ -67,11 +67,11 @@ if not os.path.isdir(os.path.join(config.folder, serial_number)):
 
 def heartbeat():
     now = time.time()
-    request = requests.post(config.server + "/camera/heartbeat", json={"serial": serial_number})
+    request = requests.post(config.server + "/heartbeat", json={"serial": serial_number, "type": "camera"})
     data = request.json()
     if 'configuration' in data:
         set_settings(data['configuration'])
-        requests.post(config.server + "/camera/configuration_complete", json={"serial": serial_number})
+        requests.post(config.server + "/configuration_complete", json={"serial": serial_number})
     if 'update_options' in data:
         requests.post(config.server + "/camera/options", json={"serial": serial_number, "options": get_settings()})
     return now + data['heartbeat_interval']

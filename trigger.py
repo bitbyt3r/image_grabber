@@ -12,6 +12,7 @@ parser.add_argument("-p", "--port", help="Port to listen on", default=11000, typ
 parser.add_argument("-i", "--interface", help="Interface to listen on", default="0.0.0.0")
 parser.add_argument("-d", "--device", help="Device to send broadcast packets from", default="eth0")
 parser.add_argument("-s", "--server", help="Path to image server's REST endpoint", default="http://localhost:5000")
+parser.add_argument("-S", "--serial", help="Sets the reported id", default="1")
 config = parser.parse_args()
 
 controllers = {}
@@ -59,12 +60,19 @@ discover.start()
 
 def heartbeat():
     now = time.time()
-    request = requests.post(config.server + "/controller/heartbeat", json={"controllers": controllers})
+    request = requests.post(config.server + "/controller/heartbeat", json={"controllers": controllers, "serial": config.serial, "type": "controller"})
     data = request.json()
     if 'configuration' in data:
-        shutter_times = [[data['configuration']['open_time']*10, data['configuration']['close_time']*10] for x in range(24)]
-        flash_power = int(data['configuration']['flash_power']*2.55)
-        flash_times = [data['configuration']['flash_time'] * 10]*3
+        configuration = {
+            "open_time": 100,
+            "close_time": 200,
+            "flash_power": 0.5,
+            "flash_time": 150
+        }
+        configuration.update(data['configuration'])
+        shutter_times = [[configuration['open_time']*10, configuration['close_time']*10] for x in range(24)]
+        flash_power = int(configuration['flash_power']*2.55)
+        flash_times = [configuration['flash_time'] * 10]*3
         for controller in controllers:
             controllers[controller]['status'] = "configuring"
             data = bytearray()
