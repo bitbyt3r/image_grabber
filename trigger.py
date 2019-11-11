@@ -38,7 +38,7 @@ def udp_server():
                 if controllers[netid]['status'] != "ready":
                     break
             else:
-                requests.post(config.server = "/controller/configuration_complete")
+                requests.post(config.server + "/controller/configuration_complete")
 
 sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
