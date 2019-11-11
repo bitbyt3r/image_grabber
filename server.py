@@ -46,17 +46,17 @@ def update_heartbeat(id):
     r.set('heartbeats', json.dumps(heartbeats))
 
 @app.route("/heartbeat", methods=["POST", "GET"])
-def camera_heartbeat():
+def heartbeat():
     if request.method == "GET":
         heartbeats = {}
         if r.exists('heartbeats'):
             heartbeats = json.loads(r.get('heartbeats'))
         now = time.time()
-        cameras = []
-        for camera in heartbeats:
-            if heartbeats[camera] > (now - config.heartbeat * 1.5):
-                cameras.append(camera)
-        return jsonify(cameras=cameras)
+        devices = []
+        for device in heartbeats:
+            if heartbeats[device] > (now - config.heartbeat * 1.5):
+                devices.append(device)
+        return jsonify(devices=devices)
     if request.method == "POST":
         id = request.json['serial']
         r.transaction(lambda x : update_heartbeat(id), 'heartbeats')

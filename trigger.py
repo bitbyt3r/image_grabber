@@ -18,6 +18,7 @@ config = parser.parse_args()
 controllers = {}
 
 def udp_server():
+    print("Starting udp server...")
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     sock.bind((config.interface, config.port))
     while True:
@@ -28,6 +29,7 @@ def udp_server():
         netid = data[-1]
         if msg == "macAddressAnnounce":
             if not netid in controllers:
+                print("Discovered controller {}".format(netid))
                 controllers[netid] = {"ip": addr[0], "status": "unknown"}
         elif msg == "captureComplete":
             if netid in controllers:
