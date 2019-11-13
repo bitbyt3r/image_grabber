@@ -1,0 +1,70 @@
+#!/bin/sh
+
+HOSTNAME=photomaster.irc.umbc.edu:8080
+
+function usage {
+echo "
+    Usage: $0 [command]
+
+    Commands:
+    * fire      - Take a picture
+    * ls        - list all objects
+    * set       - Set a setting
+"
+}
+
+function fire {
+
+    curl -X POST $HOSTNAME/fire
+
+}
+
+function list {
+
+    curl -X GET $HOSTNAME/images
+
+}
+
+function set_aperture {
+    
+    curl -X POST $HOSTNAME/capture/configure -H "Content-Type: application/json" -d '{"capturesettings": {"aperture": "'$1'"}}'
+
+}
+
+function usage_set {
+echo "
+    Usage: $0 set [object]
+
+    Objects:
+    * aperture [value]      * Set the aperture
+    * shutter [value]       * Set the shutter speed
+    * iso [value]           * Set the iso
+"
+}
+
+
+case "$1" in
+fire)
+    fire
+    ;;
+ls)
+    list
+    ;;
+set)
+    case "$2" in 
+    aperture)
+        if [ $# -ne 3 ]; then
+            set_aperture $3
+        else
+            usage_set 
+        fi
+        ;;
+    *)
+        usage_set
+        ;;
+    esac
+    ;;
+*)
+    usage
+    ;;
+esac
