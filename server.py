@@ -155,7 +155,8 @@ def capture_configure():
     if request.method == "POST":
         configuration = request.json
         r.transaction(lambda x : update_capture_configure(configuration, True), 'configuration')
-        return jsonify(success=True)
+        number_configured = len(json.loads(r.get('configured')))
+        return jsonify(success=True, number_configured=number_configured)
 
 @app.route("/capture/configure_all", methods=["POST", "GET"])
 def capture_configure_all():
