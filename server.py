@@ -54,7 +54,7 @@ def heartbeat():
         now = time.time()
         devices = []
         for device in heartbeats:
-            if heartbeats[device] > (now - config.heartbeat * 1.5):
+            if heartbeats[device] > (now - config.heartbeat * 3.0):
                 devices.append(device)
         return jsonify(devices=devices)
     if request.method == "POST":
@@ -135,7 +135,7 @@ def update_capture_configure(capture_config, same=True):
             heartbeats = json.loads(r.get('heartbeats'))
         now = time.time()
         for entity in heartbeats:
-            if heartbeats[entity] > (now - config.heartbeat * 1.5):
+            if heartbeats[entity] > (now - config.heartbeat * 3.0):
                 configuration[entity] = capture_config
                 configured[entity] = False
     else:
