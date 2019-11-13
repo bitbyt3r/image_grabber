@@ -26,9 +26,12 @@ function list {
 }
 
 function set_aperture {
-    
-    curl -X POST $HOSTNAME/capture/configure -H "Content-Type: application/json" -d '{"capturesettings": {"aperture": "'$1'"}}'
 
+    if [ $# -eq 1 ]; then
+        curl -X POST $HOSTNAME/capture/configure -H "Content-Type: application/json" -d '{"capturesettings": {"aperture": "'$1'"}}'
+    else
+        usage_set
+    fi
 }
 
 function usage_set {
@@ -53,11 +56,7 @@ ls)
 set)
     case "$2" in 
     aperture)
-        if [ $# -ne 3 ]; then
-            set_aperture $3
-        else
-            usage_set 
-        fi
+        set_aperture $3
         ;;
     *)
         usage_set
