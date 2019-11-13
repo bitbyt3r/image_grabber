@@ -71,7 +71,17 @@ def heartbeat():
             configured = json.loads(r.get('configured'))
             if id in configuration and not configured[id]:
                 return jsonify(heartbeat_interval=config.heartbeat, configuration=configuration[id])
+        if request.json['type'] == "controller":
+            if r.exists('fire'):
+                if json.loads(r.get('fire')):
+                    r.set('fire', json.dumps(False))
+                    return jsonify(heartbeat_interval=config.heartbeat, fire=True)
         return jsonify(heartbeat_interval=config.heartbeat)
+
+@app.route("/fire", methods=["POST"])
+def fire():
+    r.set('fire', json.dumps(True))
+    return jsonify(success=True)
 
 def update_configured(id):
     configured = {}
