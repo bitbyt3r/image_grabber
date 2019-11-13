@@ -75,7 +75,8 @@ def heartbeat():
             if r.exists('fire'):
                 if json.loads(r.get('fire')):
                     r.set('fire', json.dumps(False))
-                    return jsonify(heartbeat_interval=config.heartbeat, fire=True)
+                    return jsonify(heartbeat_interval=config.heartbeat/10, fire=True)
+            return jsonify(heartbeat_interval=config.heartbeat/10)
         return jsonify(heartbeat_interval=config.heartbeat)
 
 @app.route("/fire", methods=["POST"])
