@@ -61,9 +61,7 @@ def set_settings(settings):
                 setting_obj.set_value(setting_val)
     camera.set_config(settings_obj, context)
 
-serial_number = camera.get_config(context).get_child_by_name('serialnumber').get_value()
-if not os.path.isdir(os.path.join(config.folder, serial_number)):
-    os.makedirs(os.path.join(config.folder, serial_number))
+serial_number = camera.get_config(context).get_child_by_name('artist').get_value().split("-")[0]
 
 def heartbeat():
     now = time.time()
@@ -81,6 +79,8 @@ while True:
     event, data = camera.wait_for_event(min(1000, int(next_heartbeat - time.time())), context)
     if type(data) is gp.camera.CameraFilePath:
         image_file = camera.file_get(data.folder, data.name, gp.GP_FILE_TYPE_NORMAL, context)
+        if not os.path.isdir(os.path.join(config.folder, serial_number)):
+            os.makedirs(os.path.join(config.folder, serial_number))
         gp.gp_file_save(image_file, os.path.join(config.folder, serial_number, data.name))
     if time.time() > next_heartbeat:
         next_heartbeat = heartbeat()
