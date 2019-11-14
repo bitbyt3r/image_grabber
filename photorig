@@ -104,9 +104,10 @@ function options {
 }
 
 function set_ {
+
     case "$1" in 
     aperture)
-        set_aperture $2
+        set_aperture $2 
         ;;
     shutter)
         set_shutter $2
@@ -126,7 +127,11 @@ function set_ {
 function set_aperture {
 
     if [ $# -eq 1 ]; then
-        curl -X POST $HOSTNAME/capture/configure -H "Content-Type: application/json" -d '{"capturesettings": {"aperture": "'$1'"}}'
+        response=$(curl -s -X GET $HOSTNAME/capture/configure)
+        key=$(echo $response | jq -r '.configuration | keys[0]')
+        json=$(echo $response | jq '.configuration."'$key'".capturesettings.aperture = "'$1'" | .configuration."'$key'"')
+
+        curl -X POST $HOSTNAME/capture/configure -H "Content-Type: application/json" -d "$json"
     else
         usage_set
     fi
@@ -134,7 +139,11 @@ function set_aperture {
 
 function set_shutter {
     if [ $# -eq 1 ]; then
-        curl -X POST $HOSTNAME/capture/configure -H "Content-Type: application/json" -d '{"capturesettings": {"shutterspeed": "'$1'"}}'
+        response=$(curl -s -X GET $HOSTNAME/capture/configure)
+        key=$(echo $response | jq -r '.configuration | keys[0]')
+        json=$(echo $response | jq '.configuration."'$key'".capturesettings.shutterspeed = "'$1'" | .configuration."'$key'"')
+        
+        curl -X POST $HOSTNAME/capture/configure -H "Content-Type: application/json" -d "$json"
     else
         usage_set
     fi
@@ -142,7 +151,11 @@ function set_shutter {
 
 function set_iso {
     if [ $# -eq 1 ]; then
-        curl -X POST $HOSTNAME/capture/configure -H "Content-Type: application/json" -d '{"imgsettings": {"iso": "'$1'"}}'
+        response=$(curl -s -X GET $HOSTNAME/capture/configure)
+        key=$(echo $response | jq -r '.configuration | keys[0]')
+        json=$(echo $response | jq '.configuration."'$key'".imgsettings.iso = "'$1'" | .configuration."'$key'"')
+
+        curl -X POST $HOSTNAME/capture/configure -H "Content-Type: application/json" -d "$json"
     else
         usage_set
     fi
@@ -150,7 +163,11 @@ function set_iso {
 
 function set_projector {
     if [ $# -eq 1 ]; then
-        curl -X POST $HOSTNAME/capture/configure -H "Content-Type: application/json" -d '{"projector_image": "'$1'"}'
+        response=$(curl -s -X GET $HOSTNAME/capture/configure)
+        key=$(echo $response | jq -r '.configuration | keys[0]')
+        json=$(echo $response | jq '.configuration."'$key'".projector_image = "'$1'" | .configuration."'$key'"')
+        
+        curl -X POST $HOSTNAME/capture/configure -H "Content-Type: application/json" -d "$json"
     else
         usage_set
     fi
