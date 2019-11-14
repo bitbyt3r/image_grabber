@@ -78,18 +78,18 @@ def heartbeat():
         flash_time = configuration['flash_time']*10
         for controller in controllers:
             controllers[controller]['status'] = "configuring"
-            data = bytearray()
-            data.extend("configuration".encode('ASCII'))
-            data.append(controller)
-            data.append(len(shutter_times))
-            data.append(flash_power)
-            data.extend(struct.pack('>H', flash_time))
-            data.extend(struct.pack('>H', flash_time))
-            data.extend(struct.pack('>H', flash_time))
+            config_data = bytearray()
+            config_data.extend("configuration".encode('ASCII'))
+            config_data.append(controller)
+            config_data.append(len(shutter_times))
+            config_data.append(flash_power)
+            config_data.extend(struct.pack('>H', flash_time))
+            config_data.extend(struct.pack('>H', flash_time))
+            config_data.extend(struct.pack('>H', flash_time))
             for i in shutter_times:
-                data.extend(struct.pack('>H', i[0]))
-                data.extend(struct.pack('>H', i[1]))
-            sock.sendto(data, (controllers[controller]['ip'], config.port))
+                config_data.extend(struct.pack('>H', i[0]))
+                config_data.extend(struct.pack('>H', i[1]))
+            sock.sendto(config_data, (controllers[controller]['ip'], config.port))
     if 'fire' in data:
         for controller in controllers:
             controllers[controller]['status'] = "firing"
