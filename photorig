@@ -25,6 +25,23 @@ function list {
 
 }
 
+function setting {
+    case "$1" in 
+    aperture)
+        set_aperture $2
+        ;;
+    shutter)
+        set_shutter $2
+        ;;
+    iso)
+        set_iso $2
+        ;;
+    *)
+        usage_set
+        ;;
+    esac
+}
+
 function set_aperture {
 
     if [ $# -eq 1 ]; then
@@ -33,6 +50,23 @@ function set_aperture {
         usage_set
     fi
 }
+
+function set_shutter {
+    if [ $# -eq 1 ]; then
+        curl -X POST $HOSTNAME/capture/configure -H "Content-Type: application/json" -d '{"capturesettings": {"shutterspeed": "'$1'"}}'
+    else
+        usage_set
+    fi
+}
+
+function set_iso {
+    if [ $# -eq 1 ]; then
+        curl -X POST $HOSTNAME/capture/configure -H "Content-Type: application/json" -d '{"imgsettings": {"iso": "'$1'"}}'
+    else
+        usage_set
+    fi
+}
+
 
 function usage_set {
 echo "
@@ -54,14 +88,7 @@ ls)
     list
     ;;
 set)
-    case "$2" in 
-    aperture)
-        set_aperture $3
-        ;;
-    *)
-        usage_set
-        ;;
-    esac
+    setting $2 $3
     ;;
 *)
     usage
