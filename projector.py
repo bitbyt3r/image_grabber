@@ -4,7 +4,6 @@ import requests
 import argparse
 import pygame
 import socket
-import signal
 import time
 import json
 import os
@@ -12,6 +11,7 @@ import os
 parser = argparse.ArgumentParser()
 parser.add_argument("-s", "--server", help="Path to image server's REST endpoint", default="http://localhost:5000")
 parser.add_argument("-i", "--images", help="Path to the images to project", default="./images")
+parser.add_argument("-S", "--signal", help="Sets the serial reported to the server", default="2")
 config = parser.parse_args()
 
 drivers = ['fbcon', 'directfb', 'svgalib', 'x11']
