@@ -74,7 +74,7 @@ def heartbeat():
         }
         configuration.update(data['configuration'])
         shutter_times = [[configuration['open_time']*10, configuration['close_time']*10] for x in range(24)]
-        flash_power = int(configuration['flash_power']*2.55)
+        flash_power = int(configuration['flash_power']*255)
         flash_time = configuration['flash_time']*10
         for controller in controllers:
             controllers[controller]['status'] = "configuring"
