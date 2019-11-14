@@ -54,6 +54,7 @@ def display(file_name):
         screen.fill((0,0,0))
         pygame.display.update()
         return
+    file_name = os.path.join(config.images, file_name)
     if not(os.path.isfile(file_name)):
         print("Image {0} does not exist".format(file_name))
         return
@@ -75,8 +76,8 @@ def heartbeat():
     data = request.json()
     if 'configuration' in data:
         if 'projector_image' in data['configuration']:
-            image = os.path.join(config.images, data['configuration']['projector_image'])
-            display(image)
+            display(data['configuration']['projector_image'])
+            requests.post(config.server + "/configuration_complete", json={"serial": serial_number})
     return now + data['heartbeat_interval']
 
 while True:
