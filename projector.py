@@ -1,8 +1,10 @@
 #!/usr/bin/python
+from signal import alarm, signal, SIGALRM, SIGKILL
 import requests
 import argparse
 import pygame
 import socket
+import signal
 import time
 import json
 import os
