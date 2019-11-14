@@ -7,16 +7,23 @@ echo "    Usage: $0 [command]
 
     fire        Take a picture.
     ls          List all objects.
+    get         Prints settings or options.
     set         Set a setting.
-    options     List all settings.
     help        Print this help text.
     about       Print about info.
 "
 }
 
+function usage_get {
+echo "    Usage: $0 get [value]
+
+    settings                Print the current settings.
+    options                 Print all of the available options that are able to be set.
+"
+}
+
 function usage_set {
-echo "
-    Usage: $0 set [object] [value]
+echo "    Usage: $0 set [object] [value]
 
     aperture [value]        Set the aperture.
     shutter [value]         Set the shutter speed.
@@ -53,13 +60,10 @@ stuff please still use the REST API.
 }
 
 function fire {
-
     curl -X POST $HOSTNAME/fire
-
 }
 
 function list {
-
     if [ $# -gt 0 ]; then
 
         OUTPUT=$(curl -s -X GET $HOSTNAME/images)
@@ -73,11 +77,32 @@ function list {
     else 
         curl -s -X GET $HOSTNAME/images | jq
     fi
-
-
 }
 
-function setting {
+function get_ {
+    case "$1" in
+    settings)
+        settings
+        ;;
+    options)
+        options
+        ;;
+    *)
+        usage_get
+        ;;
+    esac
+}
+
+function settings {
+    curl -s -X GET $HOSTNAME/capture/configure | jq
+}
+
+
+function options {
+    curl -s -X GET $HOSTNAME/options | jq
+}
+
+function set_ {
     case "$1" in 
     aperture)
         set_aperture $2
@@ -119,9 +144,6 @@ function set_iso {
     fi
 }
 
-function options {
-    curl -s -X GET $HOSTNAME/options | jq
-}
 
 
 
@@ -136,11 +158,11 @@ fire)
 ls)
     list "${@:2}"
     ;;
-set)
-    setting $2 $3
+get)
+    get_ $2
     ;;
-options)
-    options
+set)
+    set_ $2 $3
     ;;
 *)
     usage
