@@ -71,7 +71,7 @@ def display(file_name):
 
 def heartbeat():
     now = time.time()
-    request = requests.post(config.server + "/heartbeat", json={"controllers": controllers, "serial": config.serial, "type": "projector"})
+    request = requests.post(config.server + "/heartbeat", json={"serial": config.serial, "type": "projector"})
     data = request.json()
     if 'configuration' in data:
         if 'projector_image' in data['configuration']:
