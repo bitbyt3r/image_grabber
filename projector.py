@@ -77,7 +77,7 @@ def heartbeat():
     if 'configuration' in data:
         if 'projector_image' in data['configuration']:
             display(data['configuration']['projector_image'])
-            requests.post(config.server + "/configuration_complete", json={"serial": serial_number})
+            requests.post(config.server + "/configuration_complete", json={"serial": config.serial})
     return now + data['heartbeat_interval']
 
 while True:
