@@ -3,13 +3,52 @@
 HOSTNAME=photomaster.irc.umbc.edu:8080
 
 function usage {
-echo "
-    Usage: $0 [command]
+echo "    Usage: $0 [command]
 
-    Commands:
-    * fire      - Take a picture
-    * ls        - list all objects
-    * set       - Set a setting
+    fire        Take a picture.
+    ls          List all objects.
+    set         Set a setting.
+    options     List all settings.
+    help        Print this help text.
+    about       Print about info.
+"
+}
+
+function usage_set {
+echo "
+    Usage: $0 set [object] [value]
+
+    aperture [value]        Set the aperture.
+    shutter [value]         Set the shutter speed.
+    iso [value]             Set the iso.
+"
+}
+
+function about {
+echo "This bash script was created to make it easier and quicker to interface 
+with the PhotoRig. It was not created to replace the REST API, but to make 
+the most common actions just a little quicker to use. To do more advanced 
+stuff please still use the REST API.
+
+    
+    Heartbeat
+        curl -X GET $HOSTNAME/heartbeat
+
+    Fire - take a shot.
+        curl -X GET $HOSTNAME/fire
+
+    Options - Display options that you can set.
+        curl -X GET $HOSTNAME/options
+   
+    Capture Configure - set a capture setting.
+        curl -X POST $HOSTNAME/capture/configure -H "Content-Type: application/json" -d '{"capturesettings": {"aperture": "5"}}'
+
+    Images - Get a list of all working images
+        curl -X GET $HOSTNAME/images
+    
+    Image - Get a single image
+        curl -X GET $HOSTNAME/image/<path:path>
+
 "
 }
 
@@ -67,20 +106,17 @@ function set_iso {
     fi
 }
 
-
-function usage_set {
-echo "
-    Usage: $0 set [object]
-
-    Objects:
-    * aperture [value]      * Set the aperture
-    * shutter [value]       * Set the shutter speed
-    * iso [value]           * Set the iso
-"
+function options {
+    curl -X GET $HOSTNAME/options
 }
 
 
+
+
 case "$1" in
+about)
+    about
+    ;;
 fire)
     fire
     ;;
@@ -89,6 +125,9 @@ ls)
     ;;
 set)
     setting $2 $3
+    ;;
+options)
+    options
     ;;
 *)
     usage
