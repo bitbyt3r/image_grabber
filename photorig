@@ -65,13 +65,13 @@ function list {
         OUTPUT=$(curl -s -X GET $HOSTNAME/images)
 
         for i in $@; do
-            echo $i:
+            echo "\033[34m$i\033[0m:"
             echo $OUTPUT | jq '."'$i'"'
             echo
         done
 
     else 
-        curl -X GET $HOSTNAME/images
+        curl -s -X GET $HOSTNAME/images | jq
     fi
 
 
@@ -120,7 +120,7 @@ function set_iso {
 }
 
 function options {
-    curl -X GET $HOSTNAME/options
+    curl -s -X GET $HOSTNAME/options | jq
 }
 
 
