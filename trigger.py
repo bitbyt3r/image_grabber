@@ -75,7 +75,7 @@ def heartbeat():
         configuration.update(data['configuration'])
         shutter_times = [[configuration['open_time']*10, configuration['close_time']*10] for x in range(24)]
         flash_power = int(configuration['flash_power']*2.55)
-        flash_times = [configuration['flash_time'] * 10]*3
+        flash_time = configuration['flash_time']*10
         for controller in controllers:
             controllers[controller]['status'] = "configuring"
             data = bytearray()
@@ -83,8 +83,9 @@ def heartbeat():
             data.append(controller)
             data.append(len(shutter_times))
             data.append(flash_power)
-            for i in flash_times:
-                data.extend(struct.pack('>H', i))
+            data.extend(struct.pack('>H', flash_time))
+            data.extend(struct.pack('>H', flash_time))
+            data.extend(struct.pack('>H', flash_time))
             for i in shutter_times:
                 data.extend(struct.pack('>H', i[0]))
                 data.extend(struct.pack('>H', i[1]))
