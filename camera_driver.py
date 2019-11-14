@@ -54,6 +54,8 @@ def get_settings():
 def set_settings(settings):
     settings_obj = camera.get_config(context)
     for section in settings:
+        if not section in ["actions", "capturesettings", "imgsettings", "other", "settings", "status"]:
+            continue
         for setting in settings[section]:
             setting_obj = settings_obj.get_child_by_name(setting)
             setting_val = settings[section][setting]
