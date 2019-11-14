@@ -28,6 +28,7 @@ echo "    Usage: $0 set [object] [value]
     aperture [value]        Set the aperture.
     shutter [value]         Set the shutter speed.
     iso [value]             Set the iso.
+    projector [value]       Set the projector image. noise.jpg or null
 "
 }
 
@@ -113,6 +114,9 @@ function set_ {
     iso)
         set_iso $2
         ;;
+    projector)
+        set_projector $2
+        ;;
     *)
         usage_set
         ;;
@@ -139,6 +143,14 @@ function set_shutter {
 function set_iso {
     if [ $# -eq 1 ]; then
         curl -X POST $HOSTNAME/capture/configure -H "Content-Type: application/json" -d '{"imgsettings": {"iso": "'$1'"}}'
+    else
+        usage_set
+    fi
+}
+
+function set_projector {
+    if [ $# -eq 1 ]; then
+        curl -X POST $HOSTNAME/capture/configure -H "Content-Type: application/json" -d '{"projector_image": "'$1'"}'
     else
         usage_set
     fi
