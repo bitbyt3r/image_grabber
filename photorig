@@ -60,7 +60,20 @@ function fire {
 
 function list {
 
-    curl -X GET $HOSTNAME/images
+    if [ $# -gt 0 ]; then
+
+        OUTPUT=$(curl -s -X GET $HOSTNAME/images)
+
+        for i in $@; do
+            echo $i:
+            echo $OUTPUT | jq '."'$i'"'
+            echo
+        done
+
+    else 
+        curl -X GET $HOSTNAME/images
+    fi
+
 
 }
 
@@ -121,7 +134,7 @@ fire)
     fire
     ;;
 ls)
-    list
+    list "${@:2}"
     ;;
 set)
     setting $2 $3
