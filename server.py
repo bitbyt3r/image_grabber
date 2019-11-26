@@ -13,7 +13,6 @@ import os
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("-s", "--server", help="Path to reconstruction server's REST endpoint")
-    parser.add_argument("-f", "--image_folder", help="Path to the image storage")
     parser.add_argument("-F", "--scan_folder", help="Path to the root folder for scan storage")
     parser.add_argument("-r", "--redis_host", help="Redis host", default="localhost")
     parser.add_argument("-p", "--redis_port", help="Redis port", default=6379, type=int)
@@ -21,6 +20,9 @@ if __name__ == "__main__":
     parser.add_argument("-H", "--heartbeat", help="Sets the heartbeat interval for clients", default=1, type=float)
     parser.add_argument("-l", "--host", help="Hostname to listen on", default="localhost")
     parser.add_argument("-P", "--port", help="Port to listen on", default=5000, type=int)
+    parser.add_argument("-m", "--cephmonitors", help="The ip address(es) of the ceph monitors", default="130.85.96.90 130.85.96.91")
+    parser.add_argument("-k", "--cephkey", help="The cephx auth key of the ceph cluster", default="")
+    parser.add_argument("-o", "--pool", help="The ceph pool to save images to", default="photorig")
     config = parser.parse_args()
 else:
     config = SimpleNamespace(
@@ -32,8 +34,16 @@ else:
         redis_db=0,
         heartbeat=1,
         host="localhost",
-        port=5000
+        port=5000,
+        cephmonitors="130.85.96.90 130.85.96.91",
+        cephkey="",
+        pool="photorig"
     )
+
+cluster = rados.Rados()
+cluster.conf_set("mon_host", config.cephmonitors)
+cluster.conf_set("key", config.cephkey)
+cluster.connect()
 
 r = redis.Redis(host=config.redis_host, port=config.redis_port, db=config.redis_db)
 
@@ -178,25 +188,25 @@ def get_options():
 
 @app.route("/image/<path:path>")
 def get_image(path):
-    return send_from_directory(config.image_folder, path)
+    with cluster.open_ioctx(config.pool) as CEPH:
+        return CEPH.read(path)
 
 @app.route("/images")
 def get_images():
-    cameras = os.listdir(config.image_folder)
     images = {}
-    for camera in cameras:
-        images[camera] = os.listdir(os.path.join(config.image_folder, camera))
+    with cluster.open_ioctx(config.pool) as CEPH:
+        for obj in CEPH.list_objects():
+            camera, image = obj.split("-")
+            images[camera] = image
     return jsonify(images)
-
-@app.route("/images/")
 
 @app.route("/delete", methods=["POST"])
 def delete_images():
-    for camera in request.json:
-        for image in request.json[camera]:
-            image_path = os.path.join(config.image_folder, camera, image)
-            if os.path.isfile(image_path):
-                os.remove(image_path)
+    with cluster.open_ioctx(config.pool) as CEPH:
+        for camera in request.json:
+            for image in request.json[camera]:
+                image_path = "{}-{}".format(camera, image)
+                CEPH.remove(image_path)
     return jsonify(success=True)
 
 @app.route("/group", methods=["POST"])
@@ -206,14 +216,13 @@ def group_images():
         os.makedirs(scan_dir)
     to_move = []
     for camera in request.json['cameras']:
-        image_path = os.path.join(config.image_folder, camera, request.json['cameras'][camera])
+        image_path = "{}-{}".format(camera, request.json['cameras'][camera])
         dest_path = os.path.join(scan_dir, camera + "." + image_path.split(".")[-1])
-        if os.path.isfile(image_path):
-            to_move.append((image_path, dest_path))
-        else:
-            return jsonify(success=False)
-    for move in to_move:
-        shutil.move(*move)
+    with cluster.open_ioctx(config.pool) as CEPH:
+        for move in to_move:
+            with open(move[1], "wb") as OUT:
+                OUT.write(CEPH.read(move[0]))
+                CEPH.remove(move[0])
     return jsonify(success=True)
 
 if __name__ == "__main__":
