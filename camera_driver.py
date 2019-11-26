@@ -2,6 +2,8 @@
 import gphoto2 as gp
 import requests
 import argparse
+import tempfile
+import rados
 import time
 import json
 import os
@@ -19,8 +21,15 @@ parser = argparse.ArgumentParser()
 parser.add_argument("-b", "--bus", help="USB Bus of the camera", type=int)
 parser.add_argument("-d", "--device", help="Device number of the camera", type=int)
 parser.add_argument("-s", "--server", help="Path to image server's REST endpoint", default="http://localhost:5000")
-parser.add_argument("-f", "--folder", help="Path to the image storage", default="./images")
+parser.add_argument("-m", "--cephmonitors", help="The ip address(es) of the ceph monitors", default="130.85.96.90 130.85.96.91")
+parser.add_argument("-k", "--cephkey", help="The cephx auth key of the ceph cluster", default="")
+parser.add_argument("-p", "--pool", help="The ceph pool to save images to", default="ssdpool")
 config = parser.parse_args()
+
+cluster = rados.Rados()
+cluster.conf_set("mon_hosts", config.cephmonitors)
+cluster.conf_set("cephkey", config.cephkey)
+cluster.connect()
 
 camera = gp.Camera()
 context = gp.Context()
@@ -81,8 +90,9 @@ while True:
     event, data = camera.wait_for_event(min(1000, int(next_heartbeat - time.time())), context)
     if type(data) is gp.camera.CameraFilePath:
         image_file = camera.file_get(data.folder, data.name, gp.GP_FILE_TYPE_NORMAL, context)
-        if not os.path.isdir(os.path.join(config.folder, serial_number)):
-            os.makedirs(os.path.join(config.folder, serial_number))
-        gp.gp_file_save(image_file, os.path.join(config.folder, serial_number, data.name))
+        with tempfile.NamedTemporaryFile() as TEMP:
+            gp.gp_file_save(image_file, TEMP.name)
+            with cluster.open_ioctx(config.pool) as CEPH:
+                CEPH.write_full(serial_number + data.name, TEMP.read())
     if time.time() > next_heartbeat:
         next_heartbeat = heartbeat()

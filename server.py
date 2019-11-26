@@ -5,6 +5,7 @@ import requests
 import argparse
 import shutil
 import redis
+import rados
 import time
 import json
 import os
@@ -186,6 +187,8 @@ def get_images():
     for camera in cameras:
         images[camera] = os.listdir(os.path.join(config.image_folder, camera))
     return jsonify(images)
+
+@app.route("/images/")
 
 @app.route("/delete", methods=["POST"])
 def delete_images():
